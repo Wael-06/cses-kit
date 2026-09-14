@@ -85,6 +85,60 @@ class RunShTests(unittest.TestCase):
         proc = self._run(self.tmp)
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
 
+    @unittest.skipUnless(shutil.which("g++"), "g++ not installed")
+    def test_real_cpp_with_placeholder_comment_stays_default(self):
+        with open(os.path.join(self.tmp, "sol.cpp"), "w") as f:
+            f.write(
+                "// your solution goes here\n"
+                "#include <iostream>\nint main(){int n; std::cin>>n; std::cout<<n*3<<'\\n';}\n"
+            )
+        with open(os.path.join(self.tmp, "sol.py"), "w") as f:
+            f.write("print(int(input()) * 2)\n")
+        with open(os.path.join(self.tmp, "sol.js"), "w") as f:
+            f.write("console.log(Number(require('fs').readFileSync(0,'utf8').trim()) * 4);\n")
+        with open(os.path.join(self.tmp, "tests", "1.in"), "w") as f:
+            f.write("3\n")
+        with open(os.path.join(self.tmp, "tests", "1.out"), "w") as f:
+            f.write("9\n")
+
+        proc = self._run(self.tmp)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("compiling", proc.stdout)
+
+    def test_python_wins_over_node_when_cpp_is_template(self):
+        shutil.copyfile(os.path.join(ROOT, "template.cpp"), os.path.join(self.tmp, "sol.cpp"))
+        with open(os.path.join(self.tmp, "sol.py"), "w") as f:
+            f.write("print(int(input()) * 2)\n")
+        with open(os.path.join(self.tmp, "sol.js"), "w") as f:
+            f.write("console.log(Number(require('fs').readFileSync(0,'utf8').trim()) * 3);\n")
+        with open(os.path.join(self.tmp, "tests", "1.in"), "w") as f:
+            f.write("4\n")
+        with open(os.path.join(self.tmp, "tests", "1.out"), "w") as f:
+            f.write("8\n")
+
+        proc = self._run(self.tmp)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("python3", proc.stdout)
+
+    @unittest.skipUnless(shutil.which("node"), "node not installed")
+    def test_node_sample_pass(self):
+        with open(os.path.join(self.tmp, "sol.js"), "w") as f:
+            f.write(
+                "const fs=require('fs');const n=Number(fs.readFileSync(0,'utf8').trim());console.log(n*2);\n"
+            )
+        with open(os.path.join(self.tmp, "tests", "1.in"), "w") as f:
+            f.write("4\n")
+        with open(os.path.join(self.tmp, "tests", "1.out"), "w") as f:
+            f.write("8\n")
+
+        proc = self._run(self.tmp)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("node", proc.stdout)
+        self.assertIn("passed", proc.stdout)
+
+        proc = self._run(os.path.join(self.tmp, "sol.js"))
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
     def test_missing_source_fails(self):
         proc = self._run(self.tmp)
         self.assertNotEqual(proc.returncode, 0)

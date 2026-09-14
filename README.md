@@ -7,9 +7,9 @@ not the University of Helsinki [cses-cli](https://github.com/csesfi/cses-cli).
 Repo: [yatharthsol090/cses-kit](https://github.com/yatharthsol090/cses-kit).
 
 C++17 is the default (`sol.cpp` from `template.cpp`). Python 3 works if you add
-`sol.py` (copy `template.py`). Run/submit pick Python when `sol.cpp` is missing
-or still the empty template, or when you pass the `.py` path. CSES gets
-`Python3` / `PyPy3` (`--option CPython3` to override).
+`sol.py` (copy `template.py`), and Node.js works with `sol.js` (copy `template.js`).
+Folder run/submit keeps a real C++ solution as the default, otherwise prefers
+Python and then Node.js. Pass a `.py` or `.js` path to force that source.
 
 Problem statements belong to CSES and are **not** in this repo. After cloning:
 
@@ -19,7 +19,7 @@ cses sync
 
 ## Setup
 
-macOS or Linux with `g++`, `python3`, and `curl`.
+macOS or Linux with `g++`, `python3`, and `curl`. Node.js is required only for `sol.js` solutions.
 
 ```bash
 chmod +x cses scripts/run.sh
@@ -55,12 +55,14 @@ cses sync --category introductory      # one section
 cses new introductory missing-number https://cses.fi/problemset/task/1083
 cses fetch <url> <problem-dir>         # refresh one statement + samples
 
-cses run trailing-zeroes               # sample tests (C++ or Python)
+cses run trailing-zeroes               # sample tests (C++, Python, or Node.js)
 cses run trailing-zeroes/sol.py        # force Python
+cses run trailing-zeroes/sol.js        # force Node.js
 cses run -i                            # in a problem folder; type input
 
 cses submit trailing-zeroes
 cses submit trailing-zeroes/sol.py
+cses submit trailing-zeroes/sol.js
 
 cses login
 cses whoami
@@ -68,11 +70,12 @@ cses install
 cses celebrate                         # preview the ACCEPTED banner
 ```
 
-Slugs, `problems/<cat>/<slug>`, or a `sol.cpp` / `sol.py` path all work. From
+Slugs, `problems/<cat>/<slug>`, or a `sol.cpp` / `sol.py` / `sol.js` path all work. From
 inside a problem folder, omit the name: `cses run` / `cses submit`.
 
-If both `sol.cpp` and `sol.py` exist and C++ is a real solution (not the
-template), the folder commands use C++. Pass `sol.py` to force Python.
+If multiple solution files exist and C++ is a real solution (not the
+template), the folder commands use C++. Otherwise they prefer Python, then
+Node.js. Pass `sol.py` or `sol.js` to force one explicitly.
 
 ## After submit
 
@@ -86,7 +89,7 @@ template), the folder commands use C++. Pass `sol.py` to force Python.
 Local `cses run` failures use the same card layout. Samples are the public
 examples only; hidden tests appear after submit, and only if CSES shows them.
 
-In VS Code / Cursor, open `sol.cpp` or `sol.py` and press **Cmd+Shift+B**, or
+In VS Code / Cursor, open `sol.cpp`, `sol.py`, or `sol.js` and press **Cmd+Shift+B**, or
 **Run Task → CSES: submit current problem**.
 
 ## Testing notes

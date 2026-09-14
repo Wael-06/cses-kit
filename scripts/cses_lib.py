@@ -32,6 +32,7 @@ LANG_BY_EXT = {
     ".cc": ("C++", "C++17"),
     ".cxx": ("C++", "C++17"),
     ".py": ("Python3", "PyPy3"),
+    ".js": ("Node.js", ""),
 }
 
 
@@ -108,12 +109,18 @@ def template_py() -> str:
     return os.path.join(repo_root(), "template.py")
 
 
+def template_js() -> str:
+    return os.path.join(repo_root(), "template.js")
+
+
 def template_for(path: str) -> str | None:
     ext = os.path.splitext(path)[1].lower()
     if ext in {".cpp", ".cc", ".cxx"}:
         return template_cpp()
     if ext == ".py":
         return template_py()
+    if ext == ".js":
+        return template_js()
     return None
 
 
@@ -471,7 +478,7 @@ def find_problem(spec: str | None) -> tuple[str, str | None]:
 
     want = spec.strip().rstrip("/").replace("\\", "/")
     file_hint = None
-    for extra in ("sol.py", "sol.cpp", "sol.cc", "sol.cxx"):
+    for extra in ("sol.py", "sol.js", "sol.cpp", "sol.cc", "sol.cxx"):
         if want == extra or want.endswith("/" + extra):
             file_hint = extra
             want = want[: -len(extra)].rstrip("/")
@@ -627,18 +634,23 @@ def sol_looks_like_template(sol_path: str) -> bool:
 
 
 def pick_source_file(prob_dir: str) -> str:
-    """Prefer a real sol.py over an untouched sol.cpp from sync."""
+    """Keep a real C++ solution as default; otherwise prefer Python, then Node.js."""
     cpp = os.path.join(prob_dir, "sol.cpp")
     py = os.path.join(prob_dir, "sol.py")
+    js = os.path.join(prob_dir, "sol.js")
     cpp_ok = os.path.isfile(cpp)
     py_ok = os.path.isfile(py)
-    if py_ok and (not cpp_ok or sol_looks_like_template(cpp)):
-        return py
-    if cpp_ok:
+    js_ok = os.path.isfile(js)
+
+    if cpp_ok and not sol_looks_like_template(cpp):
         return cpp
     if py_ok:
         return py
-    raise CurlError(f"no sol.cpp or sol.py in {prob_dir}")
+    if js_ok:
+        return js
+    if cpp_ok:
+        return cpp
+    raise CurlError(f"no sol.cpp, sol.py, or sol.js in {prob_dir}")
 
 
 def resolve_source(
@@ -1114,18 +1126,21 @@ def submit_solution(
     print(f"submitting {sol}", flush=True)
     print(f"  user   {nick}", flush=True)
     print(f"  task   {task}  ({BASE}/problemset/task/{task})", flush=True)
-    print(f"  lang   {lang} / {option}", flush=True)
+    print(f"  lang   {lang}" + (f" / {option}" if option else ""), flush=True)
+
+    form = [
+        ("csrf_token", csrf),
+        ("task", task),
+        ("lang", lang),
+        ("type", "course"),
+        ("target", "problemset"),
+    ]
+    if option:
+        form.append(("option", option))
 
     code, final, body = _curl(
         SEND_URL,
-        form=[
-            ("csrf_token", csrf),
-            ("task", task),
-            ("lang", lang),
-            ("type", "course"),
-            ("target", "problemset"),
-            ("option", option),
-        ],
+        form=form,
         upload=("file", sol),
         cookie_file=cookie_file,
         referer=submit_page_url,

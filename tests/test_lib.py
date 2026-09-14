@@ -148,6 +148,30 @@ class SourceAndPathTests(unittest.TestCase):
             f.write(source)
         self.assertFalse(lib.sol_looks_like_template(solution_path))
 
+    def test_nodejs_mapping_and_source_selection(self):
+        d = self._prob()
+        shutil.copy(os.path.join(ROOT, "template.cpp"), os.path.join(d, "sol.cpp"))
+        with open(os.path.join(d, "sol.js"), "w") as f:
+            f.write("console.log(1);\n")
+
+        self.assertTrue(lib.pick_source_file(d).endswith("sol.js"))
+        path, lang, opt = lib.resolve_source(d)
+        self.assertTrue(path.endswith("sol.js"))
+        self.assertEqual((lang, opt), ("Node.js", ""))
+
+        with open(os.path.join(d, "sol.cpp"), "w") as f:
+            f.write("#include <iostream>\nint main(){std::cout<<1;}\n")
+        self.assertTrue(lib.pick_source_file(d).endswith("sol.cpp"))
+
+        path, lang, opt = lib.resolve_source(
+            d, source=os.path.join(d, "sol.js")
+        )
+        self.assertTrue(path.endswith("sol.js"))
+        self.assertEqual((lang, opt), ("Node.js", ""))
+
+    def test_nodejs_template_is_recognized(self):
+        self.assertTrue(lib.template_for("sol.js").endswith("template.js"))
+
     def test_no_solution_is_an_error(self):
         d = self._prob()
         with self.assertRaises(lib.CurlError):
@@ -163,9 +187,13 @@ class SourceAndPathTests(unittest.TestCase):
                 lib.find_problem("trailing-zeroes/sol.py")
         with open(os.path.join(d, "sol.py"), "w") as f:
             f.write("print(1)\n")
+        with open(os.path.join(d, "sol.js"), "w") as f:
+            f.write("console.log(1);\n")
         with patch.object(lib, "repo_root", return_value=self.tmp):
             got, src = lib.find_problem("trailing-zeroes/sol.py")
             self.assertTrue(src.endswith("sol.py"))
+            got, src = lib.find_problem("trailing-zeroes/sol.js")
+            self.assertTrue(src.endswith("sol.js"))
             self.assertIsNone(lib.problem_from_cwd(self.tmp))
             self.assertEqual(
                 os.path.realpath(lib.problem_from_cwd(d)), os.path.realpath(d)

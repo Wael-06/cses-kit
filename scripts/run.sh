@@ -2,11 +2,13 @@
 # Run a CSES solution against every test case in its tests/ dir.
 #
 # Usage:
-#   scripts/run.sh <problem-dir>        # compile (C++) or interpret (Python) + test
+#   scripts/run.sh <problem-dir>        # compile (C++) or interpret (Python/Node.js) + test
 #   scripts/run.sh <problem-dir> -i     # then read from stdin (interactive)
 #   scripts/run.sh <dir>/sol.py         # force Python even if sol.cpp exists
+#   scripts/run.sh <dir>/sol.js         # force Node.js even if sol.cpp exists
 #
-# Picks sol.py when sol.cpp is missing or still the empty template; otherwise C++.
+# Keeps a real sol.cpp as the default. When sol.cpp is missing or still the empty
+# template, prefers sol.py for backward compatibility and then sol.js.
 set -euo pipefail
 
 # Resolve repo root (this script lives in <root>/scripts).
@@ -25,8 +27,17 @@ if [[ -f "$ARG" ]]; then
   PROB="$(cd "$(dirname "$ARG")" && pwd)"
 else
   PROB="$ARG"
-  if [[ -f "$PROB/sol.py" ]] && { [[ ! -f "$PROB/sol.cpp" ]] || grep -q 'your solution goes here' "$PROB/sol.cpp"; }; then
+  CPP_TEMPLATE=false
+  if [[ -f "$PROB/sol.cpp" ]] && [[ -f "$ROOT/template.cpp" ]] \
+      && cmp -s <(tr -d '[:space:]' < "$PROB/sol.cpp") <(tr -d '[:space:]' < "$ROOT/template.cpp"); then
+    CPP_TEMPLATE=true
+  fi
+  if [[ -f "$PROB/sol.cpp" ]] && [[ "$CPP_TEMPLATE" == false ]]; then
+    SRC="$PROB/sol.cpp"
+  elif [[ -f "$PROB/sol.py" ]]; then
     SRC="$PROB/sol.py"
+  elif [[ -f "$PROB/sol.js" ]]; then
+    SRC="$PROB/sol.js"
   else
     SRC="$PROB/sol.cpp"
   fi
@@ -42,6 +53,8 @@ RUN=()
 ext="${SRC##*.}"
 if [[ "$ext" == "py" ]]; then
   RUN=(python3 "$SRC")
+elif [[ "$ext" == "js" ]]; then
+  RUN=(node "$SRC")
 elif [[ "$ext" == "cpp" || "$ext" == "cc" || "$ext" == "cxx" ]]; then
   RUN=("$BIN")
 else
@@ -58,6 +71,12 @@ fi
 
 if [[ "$ext" == "py" ]]; then
   echo "${DIM}python3 $SRC ...${RST}"
+elif [[ "$ext" == "js" ]]; then
+  if ! command -v node >/dev/null 2>&1; then
+    echo "error: node is required to run $SRC" >&2
+    exit 1
+  fi
+  echo "${DIM}node $SRC ...${RST}"
 else
   echo "${DIM}compiling $SRC ...${RST}"
   g++ -std=gnu++17 -O2 -Wall -Wextra -Wshadow \
