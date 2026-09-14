@@ -135,6 +135,19 @@ class SourceAndPathTests(unittest.TestCase):
         self.assertEqual((lang, opt), ("Python3", "PyPy3"))
         self.assertTrue(path.endswith("sol.py"))
 
+    def test_solution_with_placeholder_is_not_template(self):
+        d = self._prob()
+        template_path = os.path.join(ROOT, "template.cpp")
+        solution_path = os.path.join(d, "sol.cpp")
+        with open(template_path, encoding="utf-8") as f:
+            source = f.read().replace(
+                "    // ---- your solution goes here ----\n\n",
+                "    // ---- your solution goes here ----\n    int n;\n    cin >> n;\n",
+            )
+        with open(solution_path, "w", encoding="utf-8") as f:
+            f.write(source)
+        self.assertFalse(lib.sol_looks_like_template(solution_path))
+
     def test_no_solution_is_an_error(self):
         d = self._prob()
         with self.assertRaises(lib.CurlError):

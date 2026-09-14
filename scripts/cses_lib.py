@@ -623,7 +623,7 @@ def sol_looks_like_template(sol_path: str) -> bool:
     def norm(s: str) -> str:
         return re.sub(r"\s+", "", s)
 
-    return (tmpl and norm(src) == norm(tmpl)) or "your solution goes here" in src
+    return bool(tmpl and norm(src) == norm(tmpl))
 
 
 def pick_source_file(prob_dir: str) -> str:
