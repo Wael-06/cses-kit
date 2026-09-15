@@ -68,6 +68,9 @@ cses login
 cses whoami
 cses install
 cses celebrate                         # preview the ACCEPTED banner
+cses status                            # solved vs remaining per category
+cses status --unsolved                 # also list unsolved problem slugs
+cses status --category introductory    # filter by category
 ```
 
 Slugs, `problems/<cat>/<slug>`, or a `sol.cpp` / `sol.py` / `sol.js` path all work. From
