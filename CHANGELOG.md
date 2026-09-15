@@ -15,6 +15,10 @@ the command surface stable.
 
 ## [Unreleased]
 
+### Added
+
+- `cses status` — solved vs remaining per category (`--unsolved`, `--category`, `--json`) ([#10](https://github.com/yatharthsol090/cses-kit/pull/10))
+
 ## [0.1.0] - 2026-09-15
 
 First tagged release.
