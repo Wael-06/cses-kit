@@ -47,6 +47,8 @@ from cses_lib import (
     submit_solution,
     whoami,
 )
+from cses_tui import run_tui
+from setup_flow import cmd_setup
 
 
 def positive_float(value: str) -> float:
@@ -262,6 +264,10 @@ def cmd_version(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_tui(_args: argparse.Namespace) -> int:
+    return run_tui(repo_path=_args.repo_path, roadmap_path=_args.roadmap)
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="cses",
@@ -365,6 +371,20 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--title", default="Trailing Zeros")
     c.add_argument("--score", default="13/13")
     c.set_defaults(func=cmd_celebrate)
+
+    setup = sub.add_parser("setup", help="save local CSES credentials and TUI preferences")
+    setup.add_argument("--nick", default=None, help="CSES username")
+    setup.add_argument("--password", default=None, help="CSES password")
+    setup.add_argument("--editor", default=None, help="editor command: code, cursor, vim, nvim, or custom")
+    setup.add_argument("--session-mode", default=None, choices=("cookie", "phpseSSID"), help="preferred session mode")
+    setup.add_argument("--repo-path", default=None, help="existing problems directory to sync with")
+    setup.add_argument("--roadmap", default=None, help="roadmap JSON or TXT file")
+    setup.set_defaults(func=cmd_setup)
+
+    t = sub.add_parser("tui", help="launch the keyboard-first CSES Kit TUI")
+    t.add_argument("--repo-path", default=None, help="existing problems directory to browse")
+    t.add_argument("--roadmap", default=None, help="roadmap JSON or TXT file")
+    t.set_defaults(func=cmd_tui)
 
     v = sub.add_parser("version", help="print the cses-kit version")
     v.set_defaults(func=cmd_version)

@@ -13,6 +13,7 @@ sys.path.insert(0, SCRIPTS)
 
 import cses as cses_cli  # noqa: E402
 import cses_lib as lib  # noqa: E402
+import setup_flow  # noqa: E402
 
 
 class CliTests(unittest.TestCase):
@@ -91,6 +92,41 @@ class CliTests(unittest.TestCase):
         self.assertEqual(args.category, "introductory")
         self.assertTrue(args.unsolved)
         self.assertTrue(args.json)
+
+    def test_parser_tui_command(self):
+        p = cses_cli.build_parser()
+        args = p.parse_args(["tui"])
+        self.assertEqual(args.cmd, "tui")
+
+    def test_parser_setup_command(self):
+        p = cses_cli.build_parser()
+        args = p.parse_args(["setup", "--nick", "alice", "--password", "secret", "--editor", "code"])
+        self.assertEqual(args.cmd, "setup")
+        self.assertEqual(args.nick, "alice")
+        self.assertEqual(args.password, "secret")
+        self.assertEqual(args.editor, "code")
+
+    def test_cmd_setup_prompts_for_editor_and_repo_path(self):
+        ns = argparse.Namespace(
+            nick="alice",
+            password="secret",
+            editor=None,
+            session_mode=None,
+            repo_path=None,
+            roadmap=None,
+        )
+        saved = {}
+        with patch.object(setup_flow, "env_credentials", return_value=("alice", "secret")), patch(
+            "builtins.input",
+            side_effect=["cursor", "/tmp/cses-problems", "2"],
+        ), patch.object(setup_flow, "save_env_values", side_effect=lambda values: saved.update(values)), patch(
+            "getpass.getpass", return_value="secret"
+        ), patch.object(setup_flow, "do_login", return_value="alice"):
+            rc = setup_flow.cmd_setup(ns)
+            self.assertEqual(rc, 0)
+            self.assertEqual(saved["CSES_EDITOR"], "cursor")
+            self.assertEqual(saved["CSES_PROBLEMS_DIR"], "/tmp/cses-problems")
+            self.assertTrue(saved["CSES_ROADMAP"].endswith("roadmaps/default.json"))
 
     def test_cmd_status_empty(self):
         tmp = tempfile.mkdtemp()

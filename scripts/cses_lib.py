@@ -85,6 +85,29 @@ def load_dotenv(path: str | None = None) -> None:
             os.environ[key] = val
 
 
+def save_env_values(values: dict[str, str]) -> None:
+    """Persist local configuration values into the repo-local .env file."""
+    path = dotenv_path()
+    current: dict[str, str] = {}
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                s = line.strip()
+                if not s or s.startswith("#") or "=" not in s:
+                    continue
+                key, val = s.split("=", 1)
+                current[key.strip()] = val.strip()
+    except OSError:
+        current = {}
+
+    for key, val in values.items():
+        current[key] = str(val)
+
+    with open(path, "w", encoding="utf-8") as f:
+        for key in sorted(current):
+            f.write(f"{key}={current[key]}\n")
+
+
 def env_credentials() -> tuple[str, str]:
     load_dotenv()
     nick = (

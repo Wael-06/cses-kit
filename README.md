@@ -45,8 +45,24 @@ CSES_NICK=your_username
 CSES_PASS=your_password
 ```
 
+For the complete interactive setup, run `cses setup`. It asks for the login
+details, editor (`nvim`, `vim`, `code`, `cursor`, or a custom command), existing
+problems directory, and starting roadmap.
+
 On macOS, `include/bits/stdc++.h` is a shim so `#include <bits/stdc++.h>` works
 with Apple clang.
+
+## Roadmap and release notes
+
+A roadmap is the list of tasks the app should display and order. It can be:
+
+- the built-in default roadmap in [roadmaps/default.json](roadmaps/default.json)
+- a CSES live sync result from `cses sync`
+- a custom JSON/TXT file you import
+- a user-created roadmap you maintain manually
+
+Release notes are the changelog for the project itself, not the problem set. They live in [CHANGELOG.md](CHANGELOG.md) and summarize new features, fixes, and compatibility changes for the app.
+
 
 ## Commands
 
@@ -74,7 +90,14 @@ cses status                            # solved vs remaining per category
 cses status --unsolved                 # also list unsolved problem slugs
 cses status --category introductory    # filter by category
 cses version                           # or: cses --version
+cses tui                               # browse the selected roadmap
 ```
+
+The TUI uses [roadmaps/default.json](roadmaps/default.json) as the local task
+index. It contains every public task with only its name, category, link,
+downloaded state, solved state, and trial number. Select a
+problem and press `d` to fetch its statement and sample tests from that indexed
+link; press Enter to download if needed and open it in the configured editor.
 
 Slugs, `problems/<cat>/<slug>`, or a `sol.cpp` / `sol.py` / `sol.js` path all work. From
 inside a problem folder, omit the name: `cses run` / `cses submit`.

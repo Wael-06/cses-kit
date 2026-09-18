@@ -1,0 +1,12 @@
+[
+  {
+    "name": "problem_name",
+    "category": "Category Name",
+    "link": "problem_link"
+  },
+  {
+    "name": "Missing Number",
+    "category": "Introductory Problems",
+    "link": "https://cses.fi/problemset/task/1083"
+  }
+]
