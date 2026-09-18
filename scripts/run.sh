@@ -160,7 +160,7 @@ for in in "${INPUTS[@]}"; do
   end=$(python3 -c 'import time; print(time.perf_counter())')
   ms=$(python3 -c "print(round(($end - $start) * 1000))")
 
-  if [[ $status -eq 124 ]]; then
+  if [[ -n "$TIMEOUT" && $status -eq 124 ]]; then
     echo "${RED}================================================${RST}"
     echo "${RED}Test ${name}  TLE  (${ms}ms)${RST}"
     echo "${RED}================================================${RST}"

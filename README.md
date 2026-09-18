@@ -19,7 +19,8 @@ cses sync
 
 ## Setup
 
-macOS or Linux with `g++`, `python3`, and `curl`.
+macOS or Linux with `g++`, `python3`, and `curl`. Node.js is required only for
+`sol.js` solutions.
 
 ```bash
 chmod +x cses scripts/run.sh
@@ -57,11 +58,13 @@ cses fetch <url> <problem-dir>         # refresh one statement + samples
 
 cses run trailing-zeroes               # sample tests (C++, Python, or Node.js)
 cses run trailing-zeroes/sol.py        # force Python
+cses run trailing-zeroes/sol.js        # force Node.js
 cses run --timeout 2 trailing-zeroes    # limit each sample to 2 seconds
 cses run -i                            # in a problem folder; type input
 
 cses submit trailing-zeroes
 cses submit trailing-zeroes/sol.py
+cses submit trailing-zeroes/sol.js
 
 cses login
 cses whoami
@@ -75,6 +78,9 @@ cses version                           # or: cses --version
 
 Slugs, `problems/<cat>/<slug>`, or a `sol.cpp` / `sol.py` / `sol.js` path all work. From
 inside a problem folder, omit the name: `cses run` / `cses submit`.
+
+`--timeout` applies to sample tests only; it does not affect `cses run -i` or
+the no-sample-tests path.
 
 If multiple solution files exist and C++ is a real solution (not the
 template), the folder commands use C++. Otherwise they prefer Python, then
@@ -100,6 +106,7 @@ In VS Code / Cursor, open `sol.cpp`, `sol.py`, or `sol.js` and press **Cmd+Shift
 - C++: `-std=gnu++17 -O2` plus AddressSanitizer and UBSan.
 - Output compare ignores trailing whitespace, like CSES.
 - Sanitizer timings are slower than a real submission.
+- `--timeout` is a local safety timer, not a simulation of CSES judge time.
 
 ## Version
 

@@ -59,6 +59,9 @@ class CliTests(unittest.TestCase):
         self.assertEqual(args.timeout, 1.5)
         with self.assertRaises(SystemExit):
             p.parse_args(["run", "--timeout", "0"])
+        for value in ("-5", "inf", "banana"):
+            with self.assertRaises(SystemExit):
+                p.parse_args(["run", "--timeout", value])
 
     def test_cmd_new_without_url(self):
         tmp = tempfile.mkdtemp()
