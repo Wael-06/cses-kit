@@ -103,8 +103,20 @@ def cmd_sync(args: argparse.Namespace) -> int:
     print(f"{total} problem(s) to sync", flush=True)
 
     for i, task in enumerate(tasks, start=1):
+        url = task.get("url")
+        if not isinstance(url, str) or not url:
+            failed += 1
+            slug = str(task.get("slug", "unknown"))
+            print(
+                f"[{i}/{total}] ERROR  cannot sync {slug!r}: roadmap entry has no task URL",
+                file=sys.stderr,
+                flush=True,
+            )
+            continue
         dest = problem_dir_for(task, by_id)
-        by_id.setdefault(task["id"], dest)
+        task_id = str(task.get("id", ""))
+        if task_id:
+            by_id.setdefault(task_id, dest)
         rel = os.path.relpath(dest, repo_root())
         existed = os.path.isdir(dest) and os.path.isfile(os.path.join(dest, "statement.md"))
         prefix = f"[{i}/{total}] {rel}"
@@ -117,8 +129,9 @@ def cmd_sync(args: argparse.Namespace) -> int:
         try:
             os.makedirs(os.path.join(dest, "tests"), exist_ok=True)
             ensure_sol_cpp(dest)
-            title, n = fetch_problem(task["url"], dest)
-            by_id[task["id"]] = dest
+            title, n = fetch_problem(url, dest)
+            if task_id:
+                by_id[task_id] = dest
             kind = "refresh" if existed else "create"
             if existed:
                 refreshed += 1
@@ -134,7 +147,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
             time.sleep(args.delay)
 
     if args.dry_run:
-        return 0
+        return 1 if failed else 0
     print()
     print(f"created {created}, refreshed {refreshed}, failed {failed}")
     return 1 if failed else 0
@@ -204,7 +217,7 @@ def cmd_run_list(args: argparse.Namespace) -> int:
     by_id = existing_problems()
     result = 0
     for entry in entries:
-        path = by_id.get(str(entry["id"]))
+        path = by_id.get(str(entry.get("id", "")))
         if not path:
             path = os.path.join(repo_root(), "problems", "roadmap", str(entry["slug"]))
         run_args = argparse.Namespace(
@@ -274,7 +287,7 @@ def cmd_status(args: argparse.Namespace) -> int:
         solved: list[str] = []
         unsolved: list[str] = []
         for entry in entries:
-            path = by_id.get(str(entry["id"])) or os.path.join(
+            path = by_id.get(str(entry.get("id", ""))) or os.path.join(
                 repo_root(), "problems", "roadmap", str(entry["slug"])
             )
             stmt = os.path.join(path, "statement.md")

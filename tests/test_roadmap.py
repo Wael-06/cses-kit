@@ -28,13 +28,25 @@ class RoadmapTests(unittest.TestCase):
         finally:
             os.unlink(path)
 
+    def test_parse_txt_roadmap_accepts_id_url_or_slug(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
+            f.write("1068\nhttps://cses.fi/problemset/task/1083\ntrailing-zeroes\n")
+            path = f.name
+        try:
+            items = parse_roadmap_txt(path)
+            self.assertEqual(items[0]["id"], "1068")
+            self.assertEqual(items[1]["id"], "1083")
+            self.assertEqual(items[2]["slug"], "trailing-zeroes")
+        finally:
+            os.unlink(path)
+
     def test_parse_txt_roadmap_preserves_order(self):
         with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
             f.write("# comment\n\n1068 https://cses.fi/problemset/task/1068 weird-algorithm\n1083 https://cses.fi/problemset/task/1083 missing-number\n")
             path = f.name
         try:
             items = parse_roadmap_txt(path)
-            self.assertEqual([item["id"] for item in items], [1068, 1083])
+            self.assertEqual([item["id"] for item in items], ["1068", "1083"])
         finally:
             os.unlink(path)
 

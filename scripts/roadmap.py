@@ -66,26 +66,56 @@ def save_problem_index(path: str, index: dict[str, dict[str, object]] | list[dic
 
 
 def parse_roadmap_txt(path: str) -> list[dict[str, object]]:
-    """Parse one ordered ``id URL slug`` record per non-comment line."""
+    """Parse one ordered task id, URL, or slug per non-comment line."""
     items: list[dict[str, object]] = []
-    pattern = re.compile(r"(\d+)\s+(https://cses\.fi/problemset/task/(\d+))\s+([a-z0-9]+(?:-[a-z0-9]+)*)/?$")
+    record_pattern = re.compile(
+        r"(\d+)\s+(https://cses\.fi/problemset/task/(\d+))\s+([a-z0-9]+(?:-[a-z0-9]+)*)/?$"
+    )
+    url_pattern = re.compile(r"https://cses\.fi/problemset/task/(\d+)/?$")
+    slug_pattern = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*$")
     with open(path, "r", encoding="utf-8") as fh:
         for line_number, raw in enumerate(fh, start=1):
             line = raw.strip()
             if not line or line.startswith("#"):
                 continue
-            match = pattern.fullmatch(line)
-            if not match or match.group(1) != match.group(3):
+            item: dict[str, object] = {"category": "roadmap"}
+            if (match := record_pattern.fullmatch(line)):
+                item_id, url, url_id, slug = match.groups()
+                if item_id != url_id:
+                    raise ValueError(f"{path}:{line_number}: unknown roadmap line: {line}")
+                item.update({
+                    "id": item_id,
+                    "url": url,
+                    "link": url,
+                    "slug": slug,
+                    "name": slug.replace("-", " ").title(),
+                })
+            elif line.isdigit():
+                item_id = line
+                item.update({
+                    "id": item_id,
+                    "url": f"https://cses.fi/problemset/task/{item_id}",
+                    "link": f"https://cses.fi/problemset/task/{item_id}",
+                    "slug": item_id,
+                    "name": item_id,
+                })
+            elif (match := url_pattern.fullmatch(line)):
+                item_id = match.group(1)
+                item.update({
+                    "id": item_id,
+                    "url": line.rstrip("/"),
+                    "link": line.rstrip("/"),
+                    "slug": item_id,
+                    "name": item_id,
+                })
+            elif slug_pattern.fullmatch(line):
+                item.update({
+                    "slug": line,
+                    "name": line.replace("-", " ").title(),
+                })
+            else:
                 raise ValueError(f"{path}:{line_number}: unknown roadmap line: {line}")
-            task_id, url, _, slug = match.groups()
-            items.append({
-                "id": int(task_id),
-                "url": url,
-                "link": url,
-                "slug": slug,
-                "name": slug.replace("-", " ").title(),
-                "category": "roadmap",
-            })
+            items.append(item)
     if not items:
         raise ValueError(f"{path}: roadmap contains no problem records")
     return items

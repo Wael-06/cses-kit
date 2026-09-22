@@ -55,8 +55,8 @@ with Apple clang.
 ## Roadmap and release notes
 
 A roadmap is an ordered, user-provided list of tasks. A text roadmap uses one
-`id URL slug` record per line; comments and blank lines are allowed. Unknown
-lines are errors and the file order is preserved.
+task ID, CSES task URL, or slug per line; comments and blank lines are allowed.
+Unknown lines are errors and the file order is preserved.
 
 Release notes are the changelog for the project itself, not the problem set. They live in [CHANGELOG.md](CHANGELOG.md) and summarize new features, fixes, and compatibility changes for the app.
 

@@ -22,6 +22,10 @@ the command surface stable.
 - `cses run --timeout SEC` — optional per-sample timeout for local runs
   ([#22](https://github.com/yatharthsol090/cses-kit/pull/22))
 
+- Roadmap-driven `sync`, `run`, `status`, and `tui` workflows, `--list`
+  options, and interactive `setup`, including text roadmaps containing task
+  IDs, CSES URLs, or slugs
+
 ## [0.1.0] - 2026-09-15
 
 First tagged release.

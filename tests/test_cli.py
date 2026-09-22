@@ -81,6 +81,27 @@ class CliTests(unittest.TestCase):
             rc = cses_cli.cmd_new(ns)
             self.assertEqual(rc, 2)
 
+    def test_cmd_sync_reports_slug_only_entry_without_fetching(self):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        ns = argparse.Namespace(
+            list_path="roadmap.txt",
+            category=None,
+            dry_run=False,
+            delay=0,
+        )
+        output = __import__("io").StringIO()
+        with patch.object(cses_cli, "load_roadmap", return_value=[{"slug": "demo"}]), patch.object(
+            cses_cli, "existing_problems", return_value={}
+        ), patch.object(cses_cli, "repo_root", return_value=tmp), patch.object(
+            cses_cli, "fetch_problem"
+        ) as fetch, patch("sys.stdout", output), patch("sys.stderr", output):
+            rc = cses_cli.cmd_sync(ns)
+        self.assertEqual(rc, 1)
+        fetch.assert_not_called()
+        self.assertIn("has no task URL", output.getvalue())
+        self.assertFalse(os.path.exists(os.path.join(tmp, "problems")))
+
     def test_parser_status_arguments(self):
         p = cses_cli.build_parser()
         args = p.parse_args(["status"])
