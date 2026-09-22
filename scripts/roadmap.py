@@ -66,39 +66,28 @@ def save_problem_index(path: str, index: dict[str, dict[str, object]] | list[dic
 
 
 def parse_roadmap_txt(path: str) -> list[dict[str, object]]:
+    """Parse one ordered ``id URL slug`` record per non-comment line."""
     items: list[dict[str, object]] = []
+    pattern = re.compile(r"(\d+)\s+(https://cses\.fi/problemset/task/(\d+))\s+([a-z0-9]+(?:-[a-z0-9]+)*)/?$")
     with open(path, "r", encoding="utf-8") as fh:
-        for raw in fh:
+        for line_number, raw in enumerate(fh, start=1):
             line = raw.strip()
             if not line or line.startswith("#"):
                 continue
-            fields = [field.strip() for field in line.split("|", maxsplit=2)]
-            if len(fields) == 3 and fields[2].startswith("https://cses.fi/problemset/task/"):
-                items.append({
-                    "name": fields[0],
-                    "category": fields[1] or "custom",
-                    "link": fields[2],
-                    "url": fields[2],
-                })
-                continue
-            if line.isdigit():
-                items.append({
-                    "id": int(line),
-                    "name": "Problem " + line,
-                    "category": "custom",
-                    "url": f"https://cses.fi/problemset/task/{line}",
-                })
-                continue
-            parts = line.split(maxsplit=1)
-            if parts and parts[0].isdigit():
-                pid = int(parts[0])
-                name = parts[1] if len(parts) > 1 else f"Problem {pid}"
-                items.append({
-                    "id": pid,
-                    "name": name,
-                    "category": "custom",
-                    "url": f"https://cses.fi/problemset/task/{pid}",
-                })
+            match = pattern.fullmatch(line)
+            if not match or match.group(1) != match.group(3):
+                raise ValueError(f"{path}:{line_number}: unknown roadmap line: {line}")
+            task_id, url, _, slug = match.groups()
+            items.append({
+                "id": int(task_id),
+                "url": url,
+                "link": url,
+                "slug": slug,
+                "name": slug.replace("-", " ").title(),
+                "category": "roadmap",
+            })
+    if not items:
+        raise ValueError(f"{path}: roadmap contains no problem records")
     return items
 
 
@@ -238,16 +227,14 @@ def build_problem_index_from_tasks(
     tasks: Iterable[dict[str, object]],
     repo_root: str | None = None,
 ) -> list[dict[str, object]]:
-    """Build the minimal persistent metadata records used by the TUI."""
+    """Build immutable roadmap records from parsed CSES tasks."""
     records = build_default_roadmap_from_tasks(tasks, repo_root=repo_root)
     return [
         {
+            "id": record["id"],
             "name": record["name"],
             "category": record["category"],
             "link": record["url"],
-            "downloaded": bool(record.get("downloaded", False)),
-            "solved": False,
-            "trial_number": 0,
         }
         for record in records
         if record.get("id")

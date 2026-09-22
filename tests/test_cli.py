@@ -100,38 +100,34 @@ class CliTests(unittest.TestCase):
 
     def test_parser_setup_command(self):
         p = cses_cli.build_parser()
-        args = p.parse_args(["setup", "--nick", "alice", "--password", "secret", "--editor", "code"])
+        args = p.parse_args(["setup", "--editor", "code"])
         self.assertEqual(args.cmd, "setup")
-        self.assertEqual(args.nick, "alice")
-        self.assertEqual(args.password, "secret")
         self.assertEqual(args.editor, "code")
 
     def test_cmd_setup_prompts_for_editor_and_repo_path(self):
         ns = argparse.Namespace(
-            nick="alice",
-            password="secret",
             editor=None,
             session_mode=None,
             repo_path=None,
-            roadmap=None,
+            roadmap="/tmp/roadmap.txt",
         )
         saved = {}
-        with patch.object(setup_flow, "env_credentials", return_value=("alice", "secret")), patch(
-            "builtins.input",
-            side_effect=["cursor", "/tmp/cses-problems", "2"],
-        ), patch.object(setup_flow, "save_env_values", side_effect=lambda values: saved.update(values)), patch(
-            "getpass.getpass", return_value="secret"
-        ), patch.object(setup_flow, "do_login", return_value="alice"):
+        with patch.dict(os.environ, {"CSES_TESTING": "1"}), patch(
+            "builtins.input", side_effect=["cursor", "/tmp/cses-problems"]
+        ), patch(
+            "setup_flow.save_env_values", side_effect=lambda values: saved.update(values)
+        ):
             rc = setup_flow.cmd_setup(ns)
             self.assertEqual(rc, 0)
             self.assertEqual(saved["CSES_EDITOR"], "cursor")
             self.assertEqual(saved["CSES_PROBLEMS_DIR"], "/tmp/cses-problems")
-            self.assertTrue(saved["CSES_ROADMAP"].endswith("roadmaps/default.json"))
+            self.assertEqual(saved["CSES_ROADMAP"], "/tmp/roadmap.txt")
+            self.assertNotIn("CSES_PASS", saved)
 
     def test_cmd_status_empty(self):
         tmp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
-        ns = argparse.Namespace(category=None, unsolved=False, json=False)
+        ns = argparse.Namespace(category=None, unsolved=False, json=False, list_path=None)
         buf = __import__("io").StringIO()
         with patch.object(lib, "repo_root", return_value=tmp), patch.object(
             cses_cli, "repo_root", return_value=tmp
@@ -149,7 +145,7 @@ class CliTests(unittest.TestCase):
             f.write("# Weird Algorithm\n\n**Verdict:** ACCEPTED\n")
 
         buf = __import__("io").StringIO()
-        ns = argparse.Namespace(category=None, unsolved=False, json=True)
+        ns = argparse.Namespace(category=None, unsolved=False, json=True, list_path=None)
         with patch.object(lib, "repo_root", return_value=tmp), patch.object(
             cses_cli, "repo_root", return_value=tmp
         ), patch("sys.stdout", buf):

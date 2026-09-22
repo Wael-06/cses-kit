@@ -28,9 +28,9 @@ class RoadmapTests(unittest.TestCase):
         finally:
             os.unlink(path)
 
-    def test_parse_txt_roadmap_ignores_comments_and_blank_lines(self):
+    def test_parse_txt_roadmap_preserves_order(self):
         with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
-            f.write("# comment\n\n1068\n1083\n")
+            f.write("# comment\n\n1068 https://cses.fi/problemset/task/1068 weird-algorithm\n1083 https://cses.fi/problemset/task/1083 missing-number\n")
             path = f.name
         try:
             items = parse_roadmap_txt(path)
@@ -38,18 +38,13 @@ class RoadmapTests(unittest.TestCase):
         finally:
             os.unlink(path)
 
-    def test_parse_txt_clean_name_category_link_format(self):
+    def test_parse_txt_unknown_line_reports_location(self):
         with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
-            f.write(
-                "# name | category | link\n"
-                "Weird Algorithm | Introductory Problems | https://cses.fi/problemset/task/1068\n"
-            )
+            f.write("1068 https://cses.fi/problemset/task/1068 weird-algorithm\nnot a roadmap record\n")
             path = f.name
         try:
-            items = parse_roadmap_txt(path)
-            self.assertEqual(items[0]["name"], "Weird Algorithm")
-            self.assertEqual(items[0]["category"], "Introductory Problems")
-            self.assertEqual(items[0]["link"], "https://cses.fi/problemset/task/1068")
+            with self.assertRaisesRegex(ValueError, rf"{path}:2: unknown roadmap line"):
+                parse_roadmap_txt(path)
         finally:
             os.unlink(path)
 
@@ -111,7 +106,7 @@ class RoadmapTests(unittest.TestCase):
         finally:
             os.unlink(path)
 
-    def test_problem_index_contains_local_state_fields(self):
+    def test_problem_index_contains_task_metadata(self):
         root = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, root, ignore_errors=True)
         index = build_problem_index_from_tasks([
@@ -124,6 +119,4 @@ class RoadmapTests(unittest.TestCase):
             }
         ], repo_root=root)
         self.assertEqual(index[0]["link"], "https://cses.fi/problemset/task/1068")
-        self.assertFalse(index[0]["downloaded"])
-        self.assertFalse(index[0]["solved"])
-        self.assertEqual(index[0]["trial_number"], 0)
+        self.assertEqual(index[0]["name"], "Weird Algorithm")

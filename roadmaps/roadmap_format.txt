@@ -1,3 +1,3 @@
-# Format: name | category | link
-Weird Algorithm | Introductory Problems | https://cses.fi/problemset/task/1068
-Missing Number | Introductory Problems | https://cses.fi/problemset/task/1083
+# One problem per line: id URL slug
+1068 https://cses.fi/problemset/task/1068 weird-algorithm
+1083 https://cses.fi/problemset/task/1083 missing-number

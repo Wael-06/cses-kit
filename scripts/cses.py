@@ -20,6 +20,7 @@ import argparse
 import getpass
 import math
 import os
+import re
 import subprocess
 import sys
 import time
@@ -48,6 +49,7 @@ from cses_lib import (
     whoami,
 )
 from cses_tui import run_tui
+from roadmap import load_roadmap
 from setup_flow import cmd_setup
 
 
@@ -70,13 +72,16 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 
 
 def cmd_sync(args: argparse.Namespace) -> int:
-    print("listing CSES problem set …", flush=True)
     try:
-        page = fetch(LIST_URL)
+        if getattr(args, "list_path", None):
+            tasks = load_roadmap(args.list_path)
+        else:
+            print("listing CSES problem set …", flush=True)
+            page = fetch(LIST_URL)
+            tasks = parse_problem_list(page)
     except Exception as e:  # noqa: BLE001
-        print(f"error: could not fetch problem list: {e}", file=sys.stderr)
+        print(f"error: could not load problem list: {e}", file=sys.stderr)
         return 1
-    tasks = parse_problem_list(page)
     if not tasks:
         print("error: parsed 0 problems from the list page", file=sys.stderr)
         return 1
@@ -175,6 +180,8 @@ def cmd_submit(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
+    if getattr(args, "list_path", None):
+        return cmd_run_list(args)
     try:
         path, source = find_problem(args.target)
     except CurlError as e:
@@ -186,6 +193,27 @@ def cmd_run(args: argparse.Namespace) -> int:
     if args.timeout is not None:
         cmd.extend(("--timeout", str(args.timeout)))
     return subprocess.call(cmd)
+
+
+def cmd_run_list(args: argparse.Namespace) -> int:
+    try:
+        entries = load_roadmap(args.list_path)
+    except Exception as e:  # noqa: BLE001
+        print(f"error: could not load problem list: {e}", file=sys.stderr)
+        return 1
+    by_id = existing_problems()
+    result = 0
+    for entry in entries:
+        path = by_id.get(str(entry["id"]))
+        if not path:
+            path = os.path.join(repo_root(), "problems", "roadmap", str(entry["slug"]))
+        run_args = argparse.Namespace(
+            target=path,
+            interactive=args.interactive,
+            timeout=args.timeout,
+        )
+        result = max(result, cmd_run(run_args))
+    return result
 
 
 def cmd_new(args: argparse.Namespace) -> int:
@@ -236,7 +264,29 @@ def cmd_install(_args: argparse.Namespace) -> int:
 
 
 def cmd_status(args: argparse.Namespace) -> int:
-    stats = collect_status(category=args.category)
+    if getattr(args, "list_path", None):
+        try:
+            entries = load_roadmap(args.list_path)
+        except Exception as e:  # noqa: BLE001
+            print(f"error: could not load problem list: {e}", file=sys.stderr)
+            return 1
+        by_id = existing_problems()
+        solved: list[str] = []
+        unsolved: list[str] = []
+        for entry in entries:
+            path = by_id.get(str(entry["id"])) or os.path.join(
+                repo_root(), "problems", "roadmap", str(entry["slug"])
+            )
+            stmt = os.path.join(path, "statement.md")
+            try:
+                text = open(stmt, encoding="utf-8", errors="replace").read()
+            except OSError:
+                text = ""
+            target = solved if "**Verdict:**" in text and re.search(r"\bACCEPTED\b", text, re.I) else unsolved
+            target.append(str(entry["slug"]))
+        stats = {"roadmap": {"solved": solved, "unsolved": unsolved}}
+    else:
+        stats = collect_status(category=args.category)
     if args.json:
         import json
 
@@ -299,6 +349,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="output status in JSON format",
     )
+    st.add_argument("--list", dest="list_path", metavar="PATH", help="ordered roadmap.txt list")
     st.set_defaults(func=cmd_status)
 
     f = sub.add_parser("fetch", help="fetch one problem's statement + sample tests")
@@ -318,6 +369,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="seconds to wait between problem fetches (default 0.2)",
     )
     s.add_argument("--dry-run", action="store_true", help="print paths, don't write")
+    s.add_argument("--list", dest="list_path", metavar="PATH", help="ordered roadmap.txt list")
     s.set_defaults(func=cmd_sync)
 
     l = sub.add_parser("login", help="save a CSES session cookie (gitignored)")
@@ -333,6 +385,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="slug, folder, or sol.py (default: current problem folder)",
     )
+    r.add_argument("--list", dest="list_path", metavar="PATH", help="run entries from an ordered roadmap.txt list")
     r.add_argument("-i", "--interactive", action="store_true", help="read stdin")
     r.add_argument(
         "--timeout",
@@ -372,9 +425,7 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--score", default="13/13")
     c.set_defaults(func=cmd_celebrate)
 
-    setup = sub.add_parser("setup", help="save local CSES credentials and TUI preferences")
-    setup.add_argument("--nick", default=None, help="CSES username")
-    setup.add_argument("--password", default=None, help="CSES password")
+    setup = sub.add_parser("setup", help="save local TUI preferences")
     setup.add_argument("--editor", default=None, help="editor command: code, cursor, vim, nvim, or custom")
     setup.add_argument("--session-mode", default=None, choices=("cookie", "phpseSSID"), help="preferred session mode")
     setup.add_argument("--repo-path", default=None, help="existing problems directory to sync with")

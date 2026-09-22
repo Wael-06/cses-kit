@@ -7,9 +7,9 @@ library functions for fetch/open/run/status instead of re-implementing the CLI.
 from __future__ import annotations
 
 import curses
-import json
 import os
 import re
+import sys
 
 from cses_lib import (
     collect_status,
@@ -20,11 +20,11 @@ from cses_lib import (
     slugify_category,
     slugify_problem,
 )
-from roadmap import load_problem_index, load_roadmap, save_problem_index
+from roadmap import load_roadmap
 
 
 def default_roadmap_path() -> str:
-    return os.path.join(repo_root(), "roadmaps", "default.json")
+    return os.path.join(repo_root(), "roadmaps", "roadmap.txt")
 
 
 def configured_repo_path() -> str:
@@ -68,21 +68,11 @@ class TuiState:
         self.display_rows: list[tuple[str, str | None, RoadmapEntry | None]] = []
         self.selected_index = 0
         self.scroll_offset = 0
-        self.status_data = collect_status(base_dir=self.repo_path)
-        self.problem_index = self._load_problem_index()
         self.refresh()
-
-    def _load_problem_index(self) -> dict[str, dict[str, object]]:
-        path = default_roadmap_path()
-        try:
-            return load_problem_index(path)
-        except (OSError, ValueError, json.JSONDecodeError):
-            return {}
 
     def refresh(self):
         self.entries = self._load_entries()
         self._sync_status()
-        self._persist_index_state()
         self.display_rows = self._build_display_rows()
         if not self.display_rows:
             self.selected_index = 0
@@ -100,9 +90,9 @@ class TuiState:
         for entry in self.entries:
             grouped.setdefault(entry.category, []).append(entry)
         rows: list[tuple[str, str | None, RoadmapEntry | None]] = []
-        for category in sorted(grouped.keys(), key=lambda c: c.lower()):
+        for category in grouped:
             rows.append(("header", category, None))
-            for entry in sorted(grouped[category], key=lambda e: e.name.lower()):
+            for entry in grouped[category]:
                 rows.append(("item", category, entry))
         return rows
 
@@ -113,20 +103,18 @@ class TuiState:
                 fallback = default_roadmap_path()
                 if os.path.exists(fallback):
                     items = load_roadmap(fallback)
-        except Exception:
-            items = []
-        if not items:
+        except OSError:
             return []
         entries = []
         for item in items:
-            indexed = self.problem_index.get(str(item.get("link") or item.get("url") or ""), {})
-            entries.append(RoadmapEntry({**indexed, **item}, self.repo_path))
+            entries.append(RoadmapEntry(item, self.repo_path))
         return entries
 
     def _sync_status(self):
+        status_data = collect_status(base_dir=self.repo_path)
         solved = set()
         failed = set()
-        for category, data in self.status_data.items():
+        for category, data in status_data.items():
             for slug in data["solved"]:
                 solved.add((category, slug))
             for slug in data["unsolved"]:
@@ -143,21 +131,6 @@ class TuiState:
             entry.solved = (entry.repo_category, entry.slug) in solved or (entry.repo_category, os.path.basename(entry.problem_dir)) in solved
             entry.failed = (entry.repo_category, entry.slug) in failed or (entry.repo_category, os.path.basename(entry.problem_dir)) in failed
             entry.downloaded = os.path.isdir(entry.problem_dir)
-
-    def _persist_index_state(self):
-        if not self.problem_index:
-            return
-        for entry in self.entries:
-            record = self.problem_index.get(entry.url)
-            if record is None:
-                continue
-            record["downloaded"] = entry.downloaded
-            record["solved"] = entry.solved
-            record["trial_number"] = int(record.get("trial_number", 0))
-        try:
-            save_problem_index(default_roadmap_path(), self.problem_index)
-        except OSError:
-            pass
 
     def selected(self):
         if not self.display_rows:
@@ -328,4 +301,7 @@ def run_tui(repo_path: str | None = None, roadmap_path: str | None = None) -> in
         curses.wrapper(lambda stdscr: TuiApp(stdscr, repo_path=repo_path, roadmap_path=roadmap_path).run())
     except KeyboardInterrupt:
         return 0
+    except (OSError, ValueError) as exc:
+        print(f"error: could not load roadmap: {exc}", file=sys.stderr)
+        return 1
     return 0

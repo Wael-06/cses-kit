@@ -54,12 +54,9 @@ with Apple clang.
 
 ## Roadmap and release notes
 
-A roadmap is the list of tasks the app should display and order. It can be:
-
-- the built-in default roadmap in [roadmaps/default.json](roadmaps/default.json)
-- a CSES live sync result from `cses sync`
-- a custom JSON/TXT file you import
-- a user-created roadmap you maintain manually
+A roadmap is an ordered, user-provided list of tasks. A text roadmap uses one
+`id URL slug` record per line; comments and blank lines are allowed. Unknown
+lines are errors and the file order is preserved.
 
 Release notes are the changelog for the project itself, not the problem set. They live in [CHANGELOG.md](CHANGELOG.md) and summarize new features, fixes, and compatibility changes for the app.
 
@@ -68,6 +65,7 @@ Release notes are the changelog for the project itself, not the problem set. The
 
 ```bash
 cses sync                              # all public tasks → problems/
+cses sync --list roadmap.txt           # sync an ordered roadmap
 cses sync --category introductory      # one section
 cses new introductory missing-number https://cses.fi/problemset/task/1083
 cses fetch <url> <problem-dir>         # refresh one statement + samples
@@ -89,15 +87,15 @@ cses celebrate                         # preview the ACCEPTED banner
 cses status                            # solved vs remaining per category
 cses status --unsolved                 # also list unsolved problem slugs
 cses status --category introductory    # filter by category
+cses status --list roadmap.txt         # status in roadmap order
+cses run --list roadmap.txt             # run each downloaded roadmap entry
 cses version                           # or: cses --version
 cses tui                               # browse the selected roadmap
 ```
 
-The TUI uses [roadmaps/default.json](roadmaps/default.json) as the local task
-index. It contains every public task with only its name, category, link,
-downloaded state, solved state, and trial number. Select a
-problem and press `d` to fetch its statement and sample tests from that indexed
-link; press Enter to download if needed and open it in the configured editor.
+The TUI reads the configured roadmap without modifying it. Downloaded and
+solved state is derived from local problem folders and the `Verdict:` line in
+each `statement.md`.
 
 Slugs, `problems/<cat>/<slug>`, or a `sol.cpp` / `sol.py` / `sol.js` path all work. From
 inside a problem folder, omit the name: `cses run` / `cses submit`.
