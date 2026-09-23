@@ -17,6 +17,10 @@ the command surface stable.
 
 ### Added
 
+## [0.2.0] - 2026-09-24
+
+### Added
+
 - `cses status` — solved vs remaining per category (`--unsolved`, `--category`, `--json`) ([#10](https://github.com/yatharthsol090/cses-kit/pull/10))
 
 - `cses next` - open the next unsolved problem after the current folder, or the first unsolved in CSES list order ([#11](https://github.com/yatharthsol090/cses-kit/pull/11))
@@ -46,5 +50,6 @@ First tagged release.
 
 See [CONTRIBUTORS.md](CONTRIBUTORS.md).
 
-[Unreleased]: https://github.com/yatharthsol090/cses-kit/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/yatharthsol090/cses-kit/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/yatharthsol090/cses-kit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/yatharthsol090/cses-kit/releases/tag/v0.1.0
