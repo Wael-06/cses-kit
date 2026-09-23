@@ -9,3 +9,4 @@ your first merge.
 - [Wael-06](https://github.com/Wael-06) — template detection ([#14](https://github.com/yatharthsol090/cses-kit/pull/14))
 - [TayfurYldz](https://github.com/TayfurYldz) — Node.js run/submit ([#23](https://github.com/yatharthsol090/cses-kit/pull/23))
 - [DYNOSuprovo](https://github.com/DYNOSuprovo) — `cses status` ([#10](https://github.com/yatharthsol090/cses-kit/pull/10))
+- [Chirudeva-Reddy](https://github.com/Chirudeva-Reddy) - `cses next` ([#11](https://github.com/yatharthsol090/cses-kit/pull/11))
